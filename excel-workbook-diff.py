@@ -32,12 +32,22 @@ def excel_workbook_diff(file1, file2, title_row):
                 print("insert #{}:{}".format(i, table2[i]))
         elif tag == "delete":
             for i in range(i1, i2):
-                print("delete #{}:{}".format(i, table2[i]))
+                print("delete #{}:{}".format(i, table1[i]))
         elif tag == "replace":
+            #for i in range(i1, i2):
+            #    print("delete #{}:{}".format(i, table1[i]))
+            #for i in range(j1, j2):
+            #    print("insert #{}:{}".format(i, table2[i]))
+            replace_list = []
             for i in range(i1, i2):
-                print("delete #{}:{}".format(i, table2[i]))
-            for i in range(j1, j2):
-                print("insert #{}:{}".format(i, table2[i]))
+                replace_list.append(table1[i] + ("00-delete",))
+            for j in range(j1, j2):
+                replace_list.append(table2[j] + ("11-append",))
+            replace_list = sorted(replace_list)
+            for entry in replace_list:
+                action = entry[-1]
+                line = entry[0:-1]
+                print("{} :{}".format(action, line))
         
 
 def read_workbook(filename, sheet_index):

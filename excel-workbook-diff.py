@@ -1,9 +1,12 @@
-import sys
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import openpyxl
 from difflib import SequenceMatcher
 from difflib import Differ
+from datetime import datetime
 
-def diff_excel_workbook(file1, file2, title_row):
+def diff_excel_workbook(file1, file2, title_row=1, start_row=2):
     sheet1 = read_workbook(file1, 0)
     sheet2 = read_workbook(file2, 0)
     
@@ -16,8 +19,8 @@ def diff_excel_workbook(file1, file2, title_row):
     if sheet1_header_titles != sheet2_header_titles:
         raise Exception("title fields not matched. {} vs {}", sheet1_header_titles, sheet2_header_titles)
 
-    table1 = read_sheet_table(sheet1)
-    table2 = read_sheet_table(sheet2)
+    table1 = read_sheet_table(sheet1, start_row=start_row)
+    table2 = read_sheet_table(sheet2, start_row=start_row)
 
     diff_result = diff_two_tables(table1, table2)
     return diff_result, sheet1_header_titles
@@ -26,15 +29,15 @@ def diff_excel_workbook(file1, file2, title_row):
 def format_diff_two_tables(diff_result, header_titles, primary_key_columns, prefix_row="=== ", prefix_column="# "):
     format_result = ""
     for opcode, field1, field2 in diff_result:
-        format_result += prefix_row + " ".join([field1[i] for i in primary_key_columns]) + "\n"
+        format_result += prefix_row + " ".join([field1[i - 1] for i in primary_key_columns]) + "\n"
         if opcode == "insert":
             for i in range(0, len(field1)):
                 format_result += prefix_column + header_titles[i] + "\n"
-                format_result += "+" + field1[i] + "\n"
+                format_result += add_prefix_each_line(field1[i], "+") + "\n"
         elif opcode == "delete":
             for i in range(0, len(field1)):
                 format_result += prefix_column + header_titles[i] + "\n"
-                format_result += "-" + field1[i] + "\n"
+                format_result += add_prefix_each_line(field1[i], "-") + "\n"
         elif opcode == "replace":
             for i in range(0, len(field1)):
                 if field1[i] == field2[i]:
@@ -55,8 +58,6 @@ def format_diff_two_tables(diff_result, header_titles, primary_key_columns, pref
                             format_result += "+" + line + "\n"
             for i in range(len(field1), len(field2)):
                 format_result += "+" + field2[i] + "\n"
-        else:
-            raise Exception("Could not recognize diff opcode:{}".format(opcode))
     return format_result
 
 def diff_two_tables(table1, table2):
@@ -123,9 +124,7 @@ def read_sheet_table(sheet, start_row=2):
             continue
         line = []
         for cell in row:
-            text = cell.value
-            if text is None:
-                text = ""
+            text = cell_to_text_multiline(cell.value)
             line.append(str(text))
         table.append(tuple(line))
     return table
@@ -137,32 +136,49 @@ def cell_to_text_oneline(cell):
     text.replace("\n", "")
     return text
 
+def cell_to_text_multiline(value):
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        if value == value.replace(hour=0, minute=0, second=0, microsecond=0):
+            return datetime.date(value)
+        return value
+
+    text = str(value)
+    while True:
+        if text == "":
+            return ""
+        if text[-1] == "\n":
+            text = text[0:-1]
+            continue
+        break
+    return text
+
+def add_prefix_each_line(text, prefix):
+    text = prefix + text.replace("\n", "\n" + prefix)
+    return text
+
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        raise Exception("Invalid arguments")
+    import sys
+    import argparse
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument("excelfile1")
+    parser.add_argument("excelfile2")
+    parser.add_argument("--title-row", metavar="1", default=1,
+        help="row number of heading row")
+    parser.add_argument("--table-start-row", metavar="2", default=2,
+        help="first row number of table data, excluding headings")
+    parser.add_argument("--row-heading-prefix", metavar='"=== "', default="=== ",
+        help="prefix that displays at each row")
+    parser.add_argument("--row-heading-display-cols", metavar='1,2', default="1,2",
+        help="column number to display each row")
+    parser.add_argument("--column-heading-prefix", metavar='"# "', default="# ",
+        help="prefix that displays at each column")
+    arg = parser.parse_args()
     file1 = sys.argv[1]
     file2 = sys.argv[2]
-    diff_result, header_titles = diff_excel_workbook(file1, file2, 1)
-    text = format_diff_two_tables(diff_result, header_titles, (0, 2,))
-    print(text)
+    row_heading_display_cols = tuple(map(lambda n: int(n), arg.row_heading_display_cols.split(",")))
     
-    exit(0)
-    table1 = [
-        ("1", "col1-1", "col1-2", "col1-3", "col1-4"),
-        ("2", "col2-1", "col2-2", "col2-3", "col2-4"),
-        ("3", "col3-2", "col3-2", "col3-3", "col3-4"),
-    ]
-    table2 = [
-        ("1", "col1-1", "col1-2", "col1-3", "col1-4"),
-        ("2", "col2-1", "col2-2", "col2-3", "col2-4"),
-        #("1-1", "col2-1", "col2-2", "col2-3", "col1-1-4"),
-        ("2", "col2-1", "col2-2", "col2-3", "col2-4"),
-        #("2", "col2-0", "col2-2", "col2-3", "col2-4"),
-        #("2", "col2-0", "col2-2", "col2-3", "col2-4"),
-        #("1-1", "col2-1", "col2-2", "col2-3", "col1-1-4"),
-        #("3", "col3-1", "col3-2", "col3-3", "col3-4"),
-    ]
-    result = diff_two_tables(table1, table2)
-    import pprint
-    pp = pprint.PrettyPrinter()
-    pp.pprint(result)
+    diff_result, header_titles = diff_excel_workbook(arg.excelfile1, arg.excelfile2, title_row=arg.title_row, start_row=arg.table_start_row)
+    text = format_diff_two_tables(diff_result, header_titles, row_heading_display_cols)
+    print(text)

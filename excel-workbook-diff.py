@@ -21,10 +21,7 @@ def excel_workbook_diff(file1, file2, title_row):
     table2 = read_sheet_table(sheet2)
 
     matcher = SequenceMatcher(None, table1, table2)
-    #print(matcher)
-    #print(list(matcher.get_opcodes()))
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        print(tag, i1, i2, j1, j2)
         if tag == "equal":
             pass
         elif tag == "insert":
@@ -34,21 +31,36 @@ def excel_workbook_diff(file1, file2, title_row):
             for i in range(i1, i2):
                 print("delete #{}:{}".format(i, table1[i]))
         elif tag == "replace":
-            #for i in range(i1, i2):
-            #    print("delete #{}:{}".format(i, table1[i]))
-            #for i in range(j1, j2):
-            #    print("insert #{}:{}".format(i, table2[i]))
-            replace_list = []
+            insert_entries = list(table2[j1:j2])
             for i in range(i1, i2):
-                replace_list.append(table1[i] + ("00-delete",))
-            for j in range(j1, j2):
-                replace_list.append(table2[j] + ("11-append",))
-            replace_list = sorted(replace_list)
-            for entry in replace_list:
-                action = entry[-1]
-                line = entry[0:-1]
-                print("{} :{}".format(action, line))
+                while True:
+                    replace_one_line_score = 0
+                    if len(insert_entries) >= 1:
+                        replace_one_line_score = count_exact_entries_in_tuple(table1[i], insert_entries[0])
+                    insert_one_line_score = 0
+                    if len(insert_entries) >= 2:
+                        insert_one_line_score = count_exact_entries_in_tuple(table1[i], insert_entries[1])
+                    delete_one_line_score = 0
+                    if i < i2 and len(insert_entries) >= 1:
+                        delete_one_line_score = count_exact_entries_in_tuple(table1[i + 1], insert_entries[0])
+                    print("SCORE replace({}) insert({}) delete({})".format(replace_one_line_score, insert_one_line_score, delete_one_line_score))
+                    if max(replace_one_line_score, insert_one_line_score, delete_one_line_score) == replace_one_line_score:
+                        print("change(before) #{}:{}".format(i, table1[i]))
+                        print("change(after) #{}:{}".format(i, insert_entries.pop(0)))
+                        break
+                    elif max(replace_one_line_score, insert_one_line_score, delete_one_line_score) == insert_one_line_score:
+                        print("insert #{}:{}".format(i, insert_entries.pop(0)))
+                    else:
+                        print("delete #{}:{}".format(i, table1[i]))
+                        break
+            
         
+def count_exact_entries_in_tuple(tuple1, tuple2):
+    count = 0
+    for i in range(min(len(tuple1), len(tuple2))):
+        if tuple1[i] == tuple2[i]:
+            count += 1
+    return count
 
 def read_workbook(filename, sheet_index):
     workbook = openpyxl.load_workbook(filename, data_only=True)

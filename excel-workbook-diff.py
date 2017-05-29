@@ -133,7 +133,7 @@ def cell_to_text_oneline(cell):
     text = cell.value
     if text is None:
         text = ""
-    text.replace("\n", "")
+    text = text.replace("\n", "")
     return text
 
 def cell_to_text_multiline(value):
@@ -180,5 +180,5 @@ if __name__ == '__main__':
     row_heading_display_cols = tuple(map(lambda n: int(n), arg.row_heading_display_cols.split(",")))
     
     diff_result, header_titles = diff_excel_workbook(arg.excelfile1, arg.excelfile2, title_row=arg.title_row, start_row=arg.table_start_row)
-    text = format_diff_two_tables(diff_result, header_titles, row_heading_display_cols)
+    text = format_diff_two_tables(diff_result, header_titles, row_heading_display_cols, prefix_row=arg.row_heading_prefix, prefix_column=arg.column_heading_prefix)
     print(text)

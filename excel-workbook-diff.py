@@ -18,7 +18,7 @@ def diff_excel_workbook(file1, file2, title_row=1, start_row=2):
         sheet2_header_titles.append(cell_to_text_oneline(cells[0]))
     if sheet1_header_titles != sheet2_header_titles:
         raise Exception("title fields not matched. {} vs {}", sheet1_header_titles, sheet2_header_titles)
-
+    
     table1 = read_sheet_table(sheet1, start_row=start_row)
     table2 = read_sheet_table(sheet2, start_row=start_row)
 
@@ -120,7 +120,7 @@ def read_sheet_table(sheet, start_row=2):
     table = []
     for row in sheet.rows:
         row_index += 1
-        if row_index <= start_row:
+        if row_index < start_row:
             continue
         line = []
         for cell in row:
@@ -133,7 +133,14 @@ def cell_to_text_oneline(cell):
     text = cell.value
     if text is None:
         text = ""
-    text = text.replace("\n", "")
+    while True:
+        if text == "":
+            return ""
+        if text[-1] == "\n":
+            text = text[0:-1]
+            continue
+        break
+    text = text.replace("\n", " ")
     return text
 
 def cell_to_text_multiline(value):
@@ -164,9 +171,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("excelfile1")
     parser.add_argument("excelfile2")
-    parser.add_argument("--title-row", metavar="1", default=1,
+    parser.add_argument("--title-row", metavar="1", default=1, type=int,
         help="row number of heading row")
-    parser.add_argument("--table-start-row", metavar="2", default=2,
+    parser.add_argument("--table-start-row", metavar="2", default=2, type=int,
         help="first row number of table data, excluding headings")
     parser.add_argument("--row-heading-prefix", metavar='"=== "', default="=== ",
         help="prefix that displays at each row")
@@ -179,6 +186,6 @@ if __name__ == '__main__':
     file2 = sys.argv[2]
     row_heading_display_cols = tuple(map(lambda n: int(n), arg.row_heading_display_cols.split(",")))
     
-    diff_result, header_titles = diff_excel_workbook(arg.excelfile1, arg.excelfile2, title_row=arg.title_row, start_row=arg.table_start_row)
+    diff_result, header_titles = diff_excel_workbook(arg.excelfile1, arg.excelfile2, title_row=int(arg.title_row), start_row=int(arg.table_start_row))
     text = format_diff_two_tables(diff_result, header_titles, row_heading_display_cols, prefix_row=arg.row_heading_prefix, prefix_column=arg.column_heading_prefix)
     print(text)

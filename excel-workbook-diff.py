@@ -29,16 +29,18 @@ def diff_excel_workbook(file1, file2, title_row=1, start_row=2):
 def format_diff_two_tables(diff_result, header_titles, primary_key_columns, prefix_row="=== ", prefix_column="# "):
     format_result = ""
     for opcode, field1, field2 in diff_result:
-        format_result += prefix_row + " ".join([field1[i - 1] for i in primary_key_columns]) + "\n"
         if opcode == "insert":
+            format_result += prefix_row + " ".join([field1[i - 1] for i in primary_key_columns]) + "\n"
             for i in range(0, len(field1)):
                 format_result += prefix_column + header_titles[i] + "\n"
                 format_result += add_prefix_each_line(field1[i], "+") + "\n"
         elif opcode == "delete":
+            format_result += prefix_row + " ".join([field1[i - 1] for i in primary_key_columns]) + "\n"
             for i in range(0, len(field1)):
                 format_result += prefix_column + header_titles[i] + "\n"
                 format_result += add_prefix_each_line(field1[i], "-") + "\n"
         elif opcode == "replace":
+            format_result += prefix_row + " ".join([field2[i - 1] for i in primary_key_columns]) + "\n"
             for i in range(0, len(field1)):
                 if field1[i] == field2[i]:
                     continue

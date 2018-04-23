@@ -6,9 +6,9 @@ from difflib import SequenceMatcher
 from difflib import Differ
 from datetime import datetime
 
-def diff_excel_workbook(file1, file2, title_row=1, start_row=2):
-    sheet1 = read_workbook(file1, 0)
-    sheet2 = read_workbook(file2, 0)
+def diff_excel_workbook(file1, file2, title_row=1, start_row=2, sheet_index=0):
+    sheet1 = read_workbook(file1, sheet_index)
+    sheet2 = read_workbook(file2, sheet_index)
     
     sheet1_header_titles = []
     sheet2_header_titles = []
